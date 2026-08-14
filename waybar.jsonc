@@ -1,0 +1,9 @@
+{
+  "custom/codex-usage": {
+    "exec": "$HOME/.local/share/codex-waybar-usage/codex-waybar.py",
+    "return-type": "json",
+    "interval": 180,
+    "signal": 13,
+    "tooltip": false
+  }
+}

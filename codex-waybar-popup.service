@@ -1,0 +1,12 @@
+[Unit]
+Description=Codex Waybar hover card
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/share/codex-waybar-usage/codex-waybar.py --popup
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

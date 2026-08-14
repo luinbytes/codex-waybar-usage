@@ -1,0 +1,9 @@
+#custom-codex-usage {
+  font-family: monospace;
+  font-size: 11px;
+  margin: 0 4px;
+}
+
+#custom-codex-usage.active { color: @accent; }
+#custom-codex-usage.inactive { opacity: 0.55; }
+#custom-codex-usage.warning { color: #ff6b6b; }
