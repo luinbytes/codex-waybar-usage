@@ -1,12 +1,13 @@
 [Unit]
-Description=Codex Waybar hover card
+Description=Grok Waybar hover card
 PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
-ExecStart=%h/.local/share/codex-waybar-usage/codex-waybar.py --popup
+ExecStart=%h/.local/share/grok-waybar-usage/grok-waybar.py --popup
 Restart=on-failure
 RestartSec=2
 
 [Install]
 WantedBy=graphical-session.target
+Alias=codex-waybar-popup.service
