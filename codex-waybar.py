@@ -7,11 +7,14 @@ import math
 import os
 import queue
 import shlex
+import sqlite3
 import subprocess
 import sys
 import threading
 import time
 import tomllib
+import urllib.error
+import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -217,8 +220,83 @@ def normalize_windows(result):
     return windows
 
 
+CURSOR_USAGE_URL = "https://api2.cursor.sh/aiserver.v1.DashboardService/GetCurrentPeriodUsage"
+
+
+def cursor_access_token():
+    config = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    database = config / "Cursor/User/globalStorage/state.vscdb"
+    connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    try:
+        row = connection.execute(
+            "SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'"
+        ).fetchone()
+    finally:
+        connection.close()
+    if not row or not str(row[0]).strip():
+        raise RuntimeError("Cursor is not signed in")
+    return str(row[0])
+
+
+def request_cursor_usage(timeout=None):
+    timeout = timeout or env_int("GROK_USAGE_TIMEOUT", 12, 1, 60)
+    request = urllib.request.Request(
+        CURSOR_USAGE_URL,
+        data=b"{}",
+        headers={
+            "Authorization": f"Bearer {cursor_access_token()}",
+            "Content-Type": "application/json",
+            "Connect-Protocol-Version": "1",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode())
+    except urllib.error.URLError as error:
+        raise RuntimeError("Cursor usage did not respond") from error
+    if not isinstance(payload, dict):
+        raise RuntimeError("Cursor usage response was not an object")
+    return payload
+
+
+def epoch_seconds(value):
+    value = number(value)
+    if value is None:
+        return None
+    return value / 1000 if value > 1e12 else value
+
+
+def windows_from_cursor(payload):
+    plan = payload.get("planUsage") if isinstance(payload, dict) else None
+    if not isinstance(plan, dict):
+        return []
+    used = percent(plan.get("totalPercentUsed"))
+    start = epoch_seconds(payload.get("billingCycleStart"))
+    end = epoch_seconds(payload.get("billingCycleEnd"))
+    if used is None or start is None or end is None or end <= start:
+        return []
+    windows = [
+        {
+            "used_percent": used,
+            "limit_window_seconds": end - start,
+            "reset_at": end,
+        }
+    ]
+    api_used = percent(plan.get("apiPercentUsed"))
+    if api_used is not None:
+        windows.insert(
+            0,
+            {
+                "used_percent": api_used,
+                "limit_window_seconds": 5 * 60 * 60,
+                "reset_at": end,
+            },
+        )
+    return windows
+
+
 def fetch_windows():
-    return normalize_windows(request_rate_limits())
+    return windows_from_cursor(request_cursor_usage())
 
 
 def select_windows(windows):
@@ -267,13 +345,13 @@ def waybar_output(windows):
         return {
             "text": "[USG --]",
             "class": "inactive",
-            "tooltip": "Codex usage unavailable",
+            "tooltip": "Grok usage unavailable",
         }
     remaining = 100 - percent(weekly.get("used_percent"))
     return {
         "text": f"[USG {remaining}%]",
         "class": "warning" if remaining <= 30 else "active",
-        "tooltip": f"Codex weekly: {remaining}% left",
+        "tooltip": f"Grok weekly: {remaining}% left",
     }
 
 
@@ -561,7 +639,7 @@ if POPUP_MODE:
             dot = Gtk.Image.new_from_icon_name("media-record-symbolic")
             dot.set_pixel_size(8)
             dot.add_css_class("codex-dot")
-            title = self.label("Codex", "codex-title")
+            title = self.label("Grok", "codex-title")
             subtitle = self.label("Session & weekly limits", "codex-subtitle")
             subtitle.set_hexpand(True)
             subtitle.set_xalign(1)
