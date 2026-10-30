@@ -1,9 +1,13 @@
+#custom-grok-usage,
 #custom-codex-usage {
   font-family: monospace;
   font-size: 11px;
   margin: 0 4px;
 }
 
+#custom-grok-usage.active,
 #custom-codex-usage.active { color: @accent; }
+#custom-grok-usage.inactive,
 #custom-codex-usage.inactive { opacity: 0.55; }
+#custom-grok-usage.warning,
 #custom-codex-usage.warning { color: #ff6b6b; }
