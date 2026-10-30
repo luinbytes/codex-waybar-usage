@@ -2,7 +2,7 @@
 
 A small Waybar module that shows your remaining Grok weekly usage on Cursor. Hover over it to open a GTK4 card with session usage, weekly pace, reset time, and a seven-day burn-down chart.
 
-The module reads the signed-in Cursor billing period. It does not print the Cursor access token. The GitHub repository name is still `codex-waybar-usage`.
+The module reads the signed-in Cursor billing period. It does not print the Cursor access token. The GitHub repository is [`luinbytes/grok-waybar-usage`](https://github.com/luinbytes/grok-waybar-usage).
 
 ## What you get
 
@@ -39,8 +39,8 @@ The live module does not call the Codex CLI. A legacy helper still shells out to
 1. Clone the repository and run the installer:
 
    ```sh
-   git clone https://github.com/luinbytes/codex-waybar-usage.git
-   cd codex-waybar-usage
+   git clone https://github.com/luinbytes/grok-waybar-usage.git
+   cd grok-waybar-usage
    ./install.sh
    ```
 
@@ -60,7 +60,7 @@ The live module does not call the Codex CLI. A legacy helper still shells out to
 
 ## Migration
 
-Project identity is Grok. Repository name stays `codex-waybar-usage`.
+Project identity is Grok. The repository is [`luinbytes/grok-waybar-usage`](https://github.com/luinbytes/grok-waybar-usage).
 
 | Old | New | Still works? |
 | --- | --- | --- |
@@ -92,7 +92,7 @@ Paste this prompt into a coding agent running on your desktop:
 ```text
 Set up Grok Waybar Usage on this machine.
 
-Repository: https://github.com/luinbytes/codex-waybar-usage
+Repository: https://github.com/luinbytes/grok-waybar-usage
 
 Goal:
 - Add the Grok usage label to my existing Waybar.

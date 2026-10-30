@@ -4,6 +4,7 @@ import importlib.util
 import inspect
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -252,9 +253,39 @@ class RenameCompatTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as home:
             home_path = Path(home)
             config = home_path / ".config"
+            data = home_path / ".local" / "share"
+            cache = home_path / ".cache"
+            state = home_path / ".local" / "state"
+            runtime = home_path / "runtime"
+            bin_dir = home_path / "bin"
+            for directory in (config, data, cache, state, runtime, bin_dir):
+                directory.mkdir(parents=True)
+            runtime.chmod(0o700)
+            # systemctl --user talks to the real user bus and ignores HOME.
+            log_path = home_path / "systemctl.log"
+            systemctl = bin_dir / "systemctl"
+            systemctl.write_text(
+                "#!/bin/sh\n"
+                'printf "%s\\n" "$*" >> "$SYSTEMCTL_LOG"\n'
+                "exit 0\n",
+                encoding="utf-8",
+            )
+            systemctl.chmod(0o755)
             env = os.environ.copy()
             env["HOME"] = home
             env["XDG_CONFIG_HOME"] = str(config)
+            env["XDG_DATA_HOME"] = str(data)
+            env["XDG_CACHE_HOME"] = str(cache)
+            env["XDG_STATE_HOME"] = str(state)
+            env["XDG_RUNTIME_DIR"] = str(runtime)
+            env["SYSTEMCTL_LOG"] = str(log_path)
+            env.pop("DBUS_SESSION_BUS_ADDRESS", None)
+            env["PATH"] = os.pathsep.join(
+                [str(bin_dir), env.get("PATH", "/usr/bin:/bin")]
+            )
+            self.assertEqual(
+                Path(shutil.which("systemctl", path=env["PATH"])), systemctl
+            )
             old_unit = config / "systemd/user/codex-waybar-popup.service"
             old_unit.parent.mkdir(parents=True)
             old_unit.write_text(
@@ -291,6 +322,10 @@ class RenameCompatTest(unittest.TestCase):
             )
             self.assertEqual(json.loads(result.stdout)["alt"], "grok")
             self.assertIn("codex-usage", json.loads(result.stdout)["class"])
+            self.assertEqual(
+                log_path.read_text(encoding="utf-8").splitlines(),
+                ["--user disable --now codex-waybar-popup.service"],
+            )
 
 
 if __name__ == "__main__":
